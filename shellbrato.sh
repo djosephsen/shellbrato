@@ -14,8 +14,14 @@ function warn {
 	echo "$@" >&2
 }
 
+function debug {
+# Print a debugging hint if DEBUG is set
+	[ "${DEBUG}" ] && echo "$@" >&2
+}
+
 function checkSanity {
 # Make sure we have what we need
+debug "checkSanity: enter"
 
 	[ "${LBUSER}" ] || error 'Please export LBUSER=<your librato username>'
 	[ "${LBTOKEN}" ] || error 'Please export LBTOKEN=<your librato token>'
@@ -47,8 +53,11 @@ function checkSanity {
 		else
 			warn 'Sorry, we couldnt detect your system architecture'
 		fi
+	fi
 			
 	#epic fail
 	[ "${JQ}" ] || error 'Please export JQ=<where jq is installed> (or link it somewhere in your PATH, and we will detect it next time'
 			
-	
+debug "checkSanity: sane"
+debug "checkSanity: exit"
+}
