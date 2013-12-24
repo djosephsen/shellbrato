@@ -3,6 +3,9 @@
 #blame dave Mon Dec 23 12:33:15 CST 2013
 
 ##### globals ###########
+QFILE=/tmp/LBTemp_$(date +%s)
+CinQ=0
+GinQ=0
 METRICS_URL="https://metrics.librato.com/"
 METRICS_API_URL="${METRICS_URL}/metrics-api/v1/metrics"
 
@@ -59,43 +62,106 @@ debug "checkSanity: enter"
 			warn 'Sorry, we couldnt detect your system architecture'
 		fi
 	fi
-			
 	#epic fail
 	[ "${JQ}" ] || error 'Please export JQ=<where jq is installed> (or link it somewhere in your PATH, and we will detect it next time'
 			
+	rm -Rf ${QFILE} #delete pre-existing queue files
 debug "checkSanity: sane"
 debug "checkSanity: exit"
 }
 
-function putMetric {
-debug "putMetric: enter"
+function sendMetrics {
+# take everything out of the queue file and send it
+debug "SendMetrics: enter"
 
-[ "${MTIME}" ] || MTIME="measure_time=$(date +%s)"
 
-${C}
- -u ${LBUSER}:${LBTOKEN}
- -d 'measure_time=${MTIME}&source=blah.com' \
- '&counters[0][name]=conn_servers' \
- '&counters[0][value]=5' \
- '&counters[1][name]=write_fails' \
- '&counters[1][value]=3' \
- '&gauges[0][name]=cpu_temp' \
- '&gauges[0][value]=88.4' \
- '&gauges[0][source]=cpu0_blah.com' \
- '&gauges[0][measure_time]=1234567949'
- -X POST https://metrics-api.librato.com/v1/metrics
+	[ "${MTIME}" ] || MTIME="measure_time=$(date +%s)"
+	[ "${DEFAULT_SOURCE}" ] || DEFAULT_SOURCE="$(hostname)"
 
-debug "putMetric: exit"
+	POST_DATA="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
+	POST_DATA="${POST_DATA}$(cat ${QFILE})"
+
+	${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics
+
+ #reset the queue
+ rm -Rf ${QFILE}
+ CinQ=0
+ GinQ=0
+
+debug "sendMetrics: exit"
 }
 
-function putCounter {
-debug "putCounter: enter"
-debug "putCounter: exit"
+function enQueue {
+#translate the input to POST data, and save it in the queue file
+# Input: $1: "type" $2: "epoctime||metric_name||value||optional_source"
+debug "enQueue: enter"
+	
+	if [ "${1}" == 'counters' ] 
+	then
+		CinQ=$((${CinQ}+1))
+		N=${CinQ}
+	else
+		GinQ=$((${GinQ}+1))
+		N=${GinQ}
+	fi
+
+	#read VTIME MNAME MVALUE SOURCE <<< $(awk -F '[|][|]' '{print $1" "$2" "$3" "$4}' <<< ${2})
+	#cleaner and less awk, but not sure if '<<<' is compatible with non-bash shells
+
+	VTIME=$(echo ${2} | awk -F '[|][|]' '{print $1}')
+	MNAME=$(echo ${2} | awk -F '[|][|]' '{print $2}')
+	MVALUE=$(echo ${2} | awk -F '[|][|]' '{print $3}')
+	SOURCE=$(echo ${2} | awk -F '[|][|]' '{print $4}')
+
+
+	echo "&${1}[${N}][name]=${MNAME}" >> ${QFILE}
+	echo "&${1}[${N}][value]=${MVALUE}" >> ${QFILE}
+	echo "&${1}[${N}][measure_time]=${VTIME}" >> ${QFILE}
+	[ "${SOURCE}" ] && echo "&${1}[${N}][source]=${SOURCE}" >> ${QFILE}
+	
+	unset VTIME MNAME MVALUE SOURCE N
+
+debug "enQueue: exit"
+
 }
 
-function putGague {
-debug "putGague: enter"
-debug "putGague: exit"
+
+function sendCounter {
+#immediatly send a single counter measurement
+debug "sendCounter: enter"
+
+	METRIC=$(echo ${1} | tr ' ' '_')
+	enQueue "counters" "${METRIC}"
+	sendMetrics
+
+debug "sendCounter: exit"
+}
+
+function sendGague {
+#immediatly send a single gauge measurement
+debug "sendGague: enter"
+
+	METRIC=$(echo ${1} | tr  ' ' '_')
+	enQueue "gauges" "${METRIC}"
+	sendMetrics
+
+debug "sendGague: exit"
+}
+
+function queueCounter {
+# append a counter measurement to the queue to send later
+debug "queueCounter: enter"
+	METRIC=$(echo ${1} | tr  ' ' '_')
+	enQueue "counters" "${METRIC}"
+debug "queueCounter: exit"
+}
+
+function queueGauge {
+# append a gauge measurement to the queue to send later
+debug "queueGauge: enter"
+	METRIC=$(echo ${1} | tr  ' ' '_')
+	enQueue "gauges" "${METRIC}"
+debug "queueGauge: exit"
 }
 
 
@@ -108,7 +174,7 @@ debug "getMetric: enter"
 #    -d "resolution=1" \
 #    -d "start_time=$START" \
 #    -d "end_time=$END" \
-#    -d "sources=${LBSOURCE}" \
+#    -d "sources=${DEFAULT_SOURCE}" \
 #    ${SUMMARIZE_OPTIONS} \
 #    -X GET ${METRICS_API_URL}/${METRIC_NAME}`
 
