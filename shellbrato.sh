@@ -33,7 +33,7 @@ debug "checkSanity: enter"
 
 	[ "${LBUSER}" ] || error 'Please export LBUSER=<your librato username>'
 	[ "${LBTOKEN}" ] || error 'Please export LBTOKEN=<your librato token>'
-	C="$(which curl) 2>/dev/null" || 'Please install Curl'
+	C="$(which curl 2>/dev/null)" || 'Please install Curl'
 	[ "${JQ}" ] || JQ=$(which jq 2>/dev/null)
 
 	if ! [ "${JQ}" ] #crud, lets see if they can use one of our jq binaries
@@ -65,8 +65,9 @@ debug "checkSanity: enter"
 	#epic fail
 	[ "${JQ}" ] || error 'Please export JQ=<where jq is installed> (or link it somewhere in your PATH, and we will detect it next time'
 			
-	rm -Rf ${QFILE} #delete pre-existing queue files
-debug "checkSanity: sane"
+	rm -Rf /tmp/LBTemp_* #don't leak tempfiles
+	debug "checkSanity: sane"
+
 debug "checkSanity: exit"
 }
 
@@ -81,7 +82,8 @@ debug "SendMetrics: enter"
 	POST_DATA="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
 	POST_DATA="${POST_DATA}$(cat ${QFILE})"
 
-	${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics
+	debug "${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics"
+	#${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics
 
  #reset the queue
  rm -Rf ${QFILE}
@@ -96,17 +98,17 @@ function enQueue {
 # Input: $1: "type" $2: "epoctime||metric_name||value||optional_source"
 debug "enQueue: enter"
 	
+		#read VTIME MNAME MVALUE SOURCE <<< $(awk -F '[|][|]' '{print $1" "$2" "$3" "$4}' <<< ${2})
+	#cleaner and less awk, but not sure if '<<<' is compatible with non-bash shells
+
 	if [ "${1}" == 'counters' ] 
 	then
-		CinQ=$((${CinQ}+1))
 		N=${CinQ}
+		CinQ=$((${CinQ}+1))
 	else
-		GinQ=$((${GinQ}+1))
 		N=${GinQ}
+		GinQ=$((${GinQ}+1))
 	fi
-
-	#read VTIME MNAME MVALUE SOURCE <<< $(awk -F '[|][|]' '{print $1" "$2" "$3" "$4}' <<< ${2})
-	#cleaner and less awk, but not sure if '<<<' is compatible with non-bash shells
 
 	VTIME=$(echo ${2} | awk -F '[|][|]' '{print $1}')
 	MNAME=$(echo ${2} | awk -F '[|][|]' '{print $2}')
@@ -137,15 +139,15 @@ debug "sendCounter: enter"
 debug "sendCounter: exit"
 }
 
-function sendGague {
+function sendGauge {
 #immediatly send a single gauge measurement
-debug "sendGague: enter"
+debug "sendGauge: enter"
 
 	METRIC=$(echo ${1} | tr  ' ' '_')
 	enQueue "gauges" "${METRIC}"
 	sendMetrics
 
-debug "sendGague: exit"
+debug "sendGauge: exit"
 }
 
 function queueCounter {
