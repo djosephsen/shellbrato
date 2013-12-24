@@ -1,4 +1,6 @@
 shellbrato
 ==========
 
-Nothing to see here. Move along. 
+A proper shell library client for librato. 
+
+Nothing to see here yet. Move along. 
