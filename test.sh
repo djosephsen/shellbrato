@@ -7,7 +7,7 @@ debug  "jq is ${JQ}"
 debug  "queue file is ${QFILE}"
 
 #get some metrics
-read five ten fifteen <<< $(uptime | cut -d\  -f15,16,17)
+read five ten fifteen <<< $(uptime | sed -e 's/.*averages: //')
 
 sendCounter "$(date +%s)||test_load5||${five}||homebase"
 sendGauge "$(date +%s)||test_load10||${ten}||homebase"
