@@ -78,6 +78,14 @@ For example:
 	#grab all values of test_load5 since yesterday
 	getMetric test_load5 $(date -d yesterday +%s)
 
+You can influence the behavior of the search by setting the following
+variables: 
+
+* GET_RESOLUTION- sets the API [&resolution](http://dev.librato.com/v1/get/metrics/:name) option
+* GET_SUMMARIZE- sets the API [&summarize_sources](http://dev.librato.com/v1/get/metrics/:name) option
+* GET_SOURCE- sets the API [&source](http://dev.librato.com/v1/get/metrics/:name) option
+
+
 The getMetric function will correctly page through all the historical values
 for you, but once it has them it basically just dumps them out using jq with a
 filter of ".". 
