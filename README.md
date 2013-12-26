@@ -105,3 +105,9 @@ off decision I made to maintain Darwin compatibility. Darwin doesn't seem to
 have a 'tempfile' binary by default, so I need to research and decide on the
 cleanest way to generate random temp files on Darwin (probably $RANDOM). In the
 near future, I'll separate the queues.
+
+Finally, I used double-pipe delimiters because many metric names are themselves
+deliminted with all sorts of interesting and creative characters. Very few
+people use multiple-character delimiters though, so although double pipes
+introduce an awk dependency, they make things generally a lot safer. Sorry
+about that. 
