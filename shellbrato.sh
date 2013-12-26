@@ -3,11 +3,13 @@
 #blame dave Mon Dec 23 12:33:15 CST 2013
 
 ##### globals ###########
+SBVER='0.1' #shellbrato version
 QFILE=/tmp/LBTemp_$(date +%s)
 CinQ=0
 GinQ=0
 METRICS_URL="https://metrics.librato.com/"
 METRICS_API_URL="${METRICS_URL}/metrics-api/v1/metrics"
+C_OPTS="--silent -A shellbrato/${SBVER}"
 
 
 ##### functions #########
@@ -79,11 +81,21 @@ debug "SendMetrics: enter"
 	[ "${MTIME}" ] || MTIME="measure_time=$(date +%s)"
 	[ "${DEFAULT_SOURCE}" ] || DEFAULT_SOURCE="$(hostname)"
 
-	POST_DATA="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
-	POST_DATA="${POST_DATA}$(cat ${QFILE})"
+	POST_PREFIX="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
+	POST_SUFFIX=$(cat ${QFILE} | tr -d '\n')
+	POST_DATA="${POST_PREFIX}${POST_SUFFIX}"
 
-	debug "${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics"
-	#${C} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST https://metrics-api.librato.com/v1/metrics
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${POST_DATA} -X POST ${METRICS_API_URL}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} "${POST_DATA}" -X POST ${METRICS_API_URL})
+
+	if [ "${OUT}" ]
+	then
+		#don't bother envolking jq unless debug is set
+		[ "${DEBUG}" ] && debug "ERROR:: $(echo ${OUT} | ${JQ} .)"
+	else
+		debug "SendMetrics:: Success!"
+	fi
 
  #reset the queue
  rm -Rf ${QFILE}
@@ -168,17 +180,33 @@ debug "queueGauge: exit"
 
 
 function getMetric {
+# recursive function to get metric data from the API
+# usage getMetric metric_name epoc_start_time epoc_end_time
+#TODO this isn't actually paging yet 
 debug "getMetric: enter"
 
-#  CURL_OUTPUT=`curl \
-#    --silent \
-#    -u ${LBUSER}:${LBTOKEN} \
-#    -d "resolution=1" \
-#    -d "start_time=$START" \
-#    -d "end_time=$END" \
-#    -d "sources=${DEFAULT_SOURCE}" \
-#    ${SUMMARIZE_OPTIONS} \
-#    -X GET ${METRICS_API_URL}/${METRIC_NAME}`
+	#Set-able options
+	[ "${GET_RESOLUTION}" ] || GET_RESOLUTION='1'
+	[ "${1}" ] || error "getMetric: arg1 should be metric name"
+	[ "${2}" ] || error "getMetric: arg2 should be start time in epoc secs"
+
+	#start building the query 
+	QUERY="-d resolution=${GET_RESOLUTION} -d start_time=${2}"
+	[ "${GET_SUMMARIZE}" ] && QUERY="${QUERY} -d summarize_sources=true"
+	[ "${GET_SOURCE}" ] && QUERY="${QUERY} -d ${GET_SOURCE}"
+
+	if [ "${3}" ]
+	then
+		QUERY="${QUERY} -d end_time=${3}" 
+	else
+		QUERY="${QUERY} -d end_time=$(date +%s)"
+	fi
+
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1})
+
+	echo ${OUT}|${JQ} .
 
 debug "getMetric: exit"
 }

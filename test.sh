@@ -1,18 +1,22 @@
 #!/bin/sh
 
 source ./shellbrato.sh
+NOW=$(date +%s)
 debug "shellbrato successfully sourced"
 debug "curl is ${C}"
 debug  "jq is ${JQ}"
 debug  "queue file is ${QFILE}"
 
 #get some metrics
-read five ten fifteen <<< $(uptime | sed -e 's/.*averages: //')
+read five ten fifteen <<< $(uptime | sed -e 's/.*average[^:]*: //'| tr -d ',')
 
-sendCounter "$(date +%s)||test_load5||${five}||homebase"
-sendGauge "$(date +%s)||test_load10||${ten}||homebase"
+#queue them up to send
+queueCounter "${NOW}||test_counter||${NOW}||homebase"
+queueGauge "${NOW}||test_load5||${five}||homebase"
+queueGauge "${NOW}||test_load10||${ten}||homebase"
+queueGauge "${NOW}||test_load15||${fifteen}||homebase"
 
-queueCounter "$(date +%s)||test_load5||${five}||homebase"
-queueGauge "$(date +%s)||test_load15||${fifteen}||homebase"
-queueGauge "$(date +%s)||test_load10||${ten}||homebase"
+#send them
 sendMetrics
+
+getMetric test_load5 $(date -d yesterday +%s)
