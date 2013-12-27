@@ -25,5 +25,5 @@ done
 echo ${RE} | ${JQ} . 
 echo 
 echo "Pages: $P"
-echo "Datapoints: $(echo ${RE} | jq . | grep 'value' | wc -l)"
+echo "Datapoints: $(echo ${RE} | ${JQ} . | grep 'value' | wc -l)"
 

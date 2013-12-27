@@ -87,14 +87,16 @@ variables:
 * GET_SOURCE- sets the API [&source](http://dev.librato.com/v1/get/metrics/:name) option
 
 
-The getMetric function will correctly page through all the historical values
-for you, but once it has them it basically just dumps them out using jq with a
-filter of ".". 
+The getMetric function returns an unformatted blob of json. You may use jq in
+your script to parse the blob however you want. Shellbrato doesn't handle
+[pagination](http://dev.librato.com/v1/pagination) for you, so your query
+results may be truncated depending on the number of measurements that are
+returned. A sample query script is provided that shows how to properly use
+[pagination](http://dev.librato.com/v1/pagination) hints from the API to make
+follow-up queries. 
 
-Once I've played around with the data I'll probably have a better handle on how
-getMetric should actually behave. I have a feeling it'll probably end up handing
-you a json blob that you can use jq to play with yourself, but I might add some
-convenience functions so you don't have to learn jq. 
+I might add some convenience functions some time later so you don't have to
+learn jq (but it's basically awesome so you totally should). 
 
 ## Design Considerations and Gotchas
 I've attempted to keep this library agnostic to the type of shell you're using
