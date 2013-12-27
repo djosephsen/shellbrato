@@ -91,7 +91,9 @@ The getMetric function returns an unformatted blob of json. You may use jq in
 your script to parse the blob however you want. Shellbrato doesn't handle
 [pagination](http://dev.librato.com/v1/pagination) for you, so your query
 results may be truncated depending on the number of measurements that are
-returned. A sample query script is provided that shows how to properly use
+returned. A [sample query
+script](https://github.com/djosephsen/shellbrato/blob/master/sample_query.sh)
+is provided that shows how to properly use
 [pagination](http://dev.librato.com/v1/pagination) hints from the API to make
 follow-up queries. 
 
