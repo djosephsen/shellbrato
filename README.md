@@ -72,7 +72,7 @@ getMetric function takes three arguments:
 
 1. The metric name
 2. The start time in epoch seconds
-3. Optionally, the end time in epoch seconds
+3. Optionally, the end time in epoch seconds (if you don't specify an end time, shellbrato will use now)
 
 For example:
 
@@ -117,6 +117,6 @@ near future, I'll separate the queues.
 
 Finally, I used double-pipe delimiters because many metric names are themselves
 deliminted with all sorts of interesting and creative characters. Very few
-people use multiple-character delimiters though, so although double pipes
-introduce an awk dependency, they make things generally a lot safer. Sorry
-about that. 
+people use multiple-character delimiters though (and they're all masochists so
+they wouldn't use this library anyway), so although double pipes introduce an
+awk dependency, they make things generally a lot safer. Sorry about that. 
