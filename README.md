@@ -8,6 +8,7 @@ Linux and Darwin systems that have:
 
 * The usual shell tools (echo, cat, tail, tr, cut)
 * sed and awk
+* [curl](curl.haxx.se/)
 * [jq](http://stedolan.github.io/jq/)
 
 Shellbrato uses jq to parse json from the API, and comes with 32 and 64 bit
@@ -49,7 +50,7 @@ with "queueCounter", and "queueGauge", followed by "sendMetrics". For example:
 	counter=$(date +%s)
 
 	#add the counter metric to the queue
-	queueCounter "${now}||test_counter||||homebase"
+	queueCounter "${now}||test_counter||${counter}||homebase"
 
 	#now send everything in the queue
 	sendMetrics
