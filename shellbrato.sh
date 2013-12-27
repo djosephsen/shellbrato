@@ -180,18 +180,17 @@ debug "queueGauge: exit"
 
 
 function getMetric {
-# recursive function to get metric data from the API
-# usage getMetric metric_name epoc_start_time epoc_end_time
-#TODO this isn't actually paging yet 
+# function to get metric data from the API
+# usage: getMetric metric_name epoc_start_time epoc_end_time
 debug "getMetric: enter"
 
 	#Set-able options
 	[ "${GET_RESOLUTION}" ] || GET_RESOLUTION='1'
 	[ "${1}" ] || error "getMetric: arg1 should be metric name"
 	[ "${2}" ] || error "getMetric: arg2 should be start time in epoc secs"
-	[ "${GET_FILTER}" ] || GET_FILTER="${JQ} ."
+	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
 
-	#start building the query 
+	#start building the query
 	QUERY="-d resolution=${GET_RESOLUTION} -d start_time=${2}"
 	[ "${GET_SUMMARIZE}" ] && QUERY="${QUERY} -d summarize_sources=true"
 	[ "${GET_SOURCE}" ] && QUERY="${QUERY} -d ${GET_SOURCE}"
@@ -208,6 +207,7 @@ debug "getMetric: enter"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1})
 
 	echo ${OUT}|${GET_FILTER}
+
 
 debug "getMetric: exit"
 }
