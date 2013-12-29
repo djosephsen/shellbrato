@@ -45,6 +45,9 @@ debug "checkSanity: enter"
 			if [ -e '/opt/shellbrato/shellbrato.sh' ]
 			then
 				SBHOME='/opt/shellbrato'
+			elif [ -e './shellbrato.sh' ]
+			then
+				SBHOME='./'
 			else
 				error 'Please export SBHOME=<where you installed shellbrato>'
 			fi
