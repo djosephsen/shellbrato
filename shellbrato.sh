@@ -40,7 +40,15 @@ debug "checkSanity: enter"
 
 	if ! [ "${JQ}" ] #crud, lets see if they can use one of our jq binaries
 	then
-		[ "${SBHOME}" ] || error 'Please export SBHOME=<where you installed shellbrato>'
+		if ! [ "${SBHOME}" ] 
+		then
+			if [ -e '/opt/shellbrato/shellbrato.sh' ]
+			then
+				SBHOME='/opt/shellbrato'
+			else
+				error 'Please export SBHOME=<where you installed shellbrato>'
+			fi
+		fi
 		if [ "$(uname)" == 'Linux' ]
 		then
 			if [ "$(uname -i)" == 'i386' ]
