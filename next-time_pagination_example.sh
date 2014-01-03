@@ -17,7 +17,7 @@ do
 	#store the combined query results in RE
 	RE="${RE}${R}" 
 	#check for a next_time hint from the API in the last result set
-	NEXT_TIME=$(echo ${R} | ${JQ} '.query' | tr -d '\n {}' | cut -d: -f2)
+	NEXT_TIME=$(echo ${R} | ${JQ} '.query' | tr -d '\n {},' | cut -d: -f2)
 	#count the pages
 	P=$((${P}+1))
 done

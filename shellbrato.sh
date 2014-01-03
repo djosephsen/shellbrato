@@ -1,4 +1,4 @@
-#!/bin/sh
+#r!/bin/sh
 # A proper shell library for Librato 
 #blame dave Mon Dec 23 12:33:15 CST 2013
 
@@ -7,9 +7,9 @@ SBVER='0.1' #shellbrato version
 QFILE=/tmp/LBTemp_$(date +%s)
 CinQ=0
 GinQ=0
-METRICS_URL="https://metrics.librato.com/"
-METRICS_API_URL="${METRICS_URL}/metrics-api/v1/metrics"
-C_OPTS="--silent -A shellbrato/${SBVER}"
+METRICS_URL="https://metrics-api.librato.com"
+METRICS_API_URL="${METRICS_URL}/v1/metrics"
+C_OPTS="--silent -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
 
 
 ##### functions #########
@@ -221,6 +221,25 @@ debug "getMetric: enter"
 
 
 debug "getMetric: exit"
+}
+
+function listMetrics {
+# returns a list of metrics from the librato api
+# usage: listMetrics offset
+debug "listMetrics: enter"
+
+	if [ "${1}" ]; then LMOFFSET=${1}; else LMOFFSET=0; fi
+
+	#Set-able options
+	[ "${LIST_FILTER}" ] || GET_FILTER=$(which cat)
+
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET})
+
+	echo ${OUT}|${GET_FILTER}
+
+debug "listMetrics: exit"
 }
 
 checkSanity
