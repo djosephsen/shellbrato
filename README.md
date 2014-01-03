@@ -25,6 +25,7 @@ Installing shellbrato is pretty easy.
 	export LBTOKEN=<your librato token>
 
 you can now add the following line near the top of your shell scripts: 
+
 	source /opt/shellbrato/shellbrato.sh
 
 ## Sending metrics
@@ -88,17 +89,45 @@ variables:
 
 
 The getMetric function returns an unformatted blob of json. You may use jq in
-your script to parse the blob however you want. Shellbrato doesn't handle
-[pagination](http://dev.librato.com/v1/pagination) for you, so your query
-results may be truncated depending on the number of measurements that are
-returned. A [sample query
-script](https://github.com/djosephsen/shellbrato/blob/master/sample_query.sh)
-is provided that shows how to properly use
-[pagination](http://dev.librato.com/v1/pagination) hints from the API to make
-follow-up queries. 
+your script to parse the blob however you want. 
 
-I might add some convenience functions some time later so you don't have to
-learn jq (but it's basically awesome so you totally should). 
+## Fetching a list of metrics
+
+You can use the listMetrics function to get a list of all of your metrics. It takes a single argument which is a pagination offset: 
+
+	myList=$(listMetrics ${OFFSET})
+
+The offset argument is optional, and will default to 0 if omitted. Like
+getMetric, listMetrics returns an unformatted JSON blob. You can use jq to dump
+it like so: 
+
+	echo ${myList} | jq .
+
+## A word about pagination
+Any query you make against the API that returns more than 100 results is going
+to be truncated, and will require follow up queries on your part.  You can read
+about how the API paginates your results
+[here](http://dev.librato.com/v1/pagination).  Shellbrato doesn't handle
+[pagination](http://dev.librato.com/v1/pagination) for you. 
+
+Generally, there are two types of pagination hints returned by the API, the
+first is when you've made a time-based query, for example using the getMetric
+function to return all of the measurements between time x and time y.  These
+results will include a "next_time" pagination hint, that will give you the epoc
+start time of the next page of results. I've provided a [sample query
+script](https://github.com/djosephsen/shellbrato/blob/master/next-time_pagination_example.sh)
+showing how to loop using the "next_time" hint. 
+
+The other type of pagination hint is returned by non-time-based queries, for
+example, using the listMetrics function to return a list of all metrics. This
+type of query returns a combination of length and offset hints. I've also
+provided an [example
+script](https://github.com/djosephsen/shellbrato/blob/master/length_pagination_example.sh)
+that shows how to use these hints to paginate your results. 
+
+I might add some convenience functions later to handle pagination, and possibly
+provide formatted output so you don't have to learn jq (but jq is basically
+awesome so you totally should). 
 
 ## Design Considerations and Gotchas
 I've attempted to keep this library agnostic to the type of shell you're using
