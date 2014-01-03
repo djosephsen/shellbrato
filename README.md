@@ -66,7 +66,7 @@ are:
 4. An optional source name (if you don't specify a source, shellbrato will use $(hostname)
 
 
-## Fetching metrics
+## Fetching measurements for a given metric
 
 The Current metric-fetching capabilities of shellbrato are pretty nascent. The
 getMetric function takes three arguments: 
