@@ -102,8 +102,7 @@ debug "SendMetrics: enter"
 
 	if [ "${OUT}" ]
 	then
-		#don't bother envolking jq unless debug is set
-		[ "${DEBUG}" ] && debug "ERROR:: $(echo ${OUT} | ${JQ} .)"
+		error "TRANSMISSION ERROR:: $(echo ${OUT} | ${JQ} .)"
 	else
 		debug "SendMetrics:: Success!"
 	fi
