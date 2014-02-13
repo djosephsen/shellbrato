@@ -156,6 +156,7 @@ awk dependency, they make things generally a lot safer. Sorry about that.
 
 ## TODO
 
-Annotation support
+Annotation support - functions to create, cache and send annotations to annotation streams
 
-explicit Statsd support 
+explicit Statsd support - functions to create and use statsd data-types (will
+requre an external statsd process)
