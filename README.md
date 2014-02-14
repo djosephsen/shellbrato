@@ -153,3 +153,9 @@ deliminted with all sorts of interesting and creative characters. Very few
 people use multiple-character delimiters though (and they're all masochists so
 they wouldn't use this library anyway), so although double pipes introduce an
 awk dependency, they make things generally a lot safer. Sorry about that. 
+
+## TODO
+
+Annotation support
+
+explicit Statsd support 
