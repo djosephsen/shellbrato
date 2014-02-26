@@ -7,16 +7,21 @@ debug "curl is ${C}"
 debug  "jq is ${JQ}"
 debug  "queue file is ${QFILE}"
 
-#get some metrics
-read five ten fifteen <<< $(uptime | sed -e 's/.*average[^:]*: //'| tr -d ',')
+#generate some metrics
+#read five ten fifteen <<< $(uptime | sed -e 's/.*average[^:]*: //'| tr -d ',')
 
 #queue them up to send
-queueCounter "${NOW}||test_counter||${NOW}||homebase"
-queueGauge "${NOW}||test_load5||${five}||homebase"
-queueGauge "${NOW}||test_load10||${ten}||homebase"
-queueGauge "${NOW}||test_load15||${fifteen}||homebase"
+#queueCounter "${NOW}||test_counter||${NOW}||homebase"
+#queueGauge "${NOW}||test_load5||${five}||homebase"
+#queueGauge "${NOW}||test_load10||${ten}||homebase"
+#queueGauge "${NOW}||test_load15||${fifteen}||homebase"
 
 #send them
-sendMetrics
+#sendMetrics
 
-getMetric test_load5 $(date -d yesterday +%s)
+#read some metrics back from the api
+#getMetric test_load5 $(date -d yesterday +%s)
+
+#list some alerts from the api
+
+listAlerts

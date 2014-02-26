@@ -9,6 +9,7 @@ CinQ=0
 GinQ=0
 METRICS_URL="https://metrics-api.librato.com"
 METRICS_API_URL="${METRICS_URL}/v1/metrics"
+ALERTING_API_URL="${METRICS_URL}/v1/alerts"
 C_OPTS="--silent -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
 
 
@@ -240,5 +241,25 @@ debug "listMetrics: enter"
 
 debug "listMetrics: exit"
 }
+
+function listAlerts {
+# returns a list of alerts from the librato api
+# usage: listAlerts offset
+debug "listAlerts: enter"
+
+	if [ "${1}" ]; then LAOFFSET=${1}; else LAOFFSET=0; fi
+
+	#Set-able options
+	[ "${LIST_FILTER}" ] || GET_FILTER=$(which cat)
+
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET})
+
+	echo ${OUT}|${GET_FILTER}
+
+debug "listAlerts: exit"
+}
+
 
 checkSanity
