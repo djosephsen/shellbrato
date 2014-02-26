@@ -158,5 +158,7 @@ awk dependency, they make things generally a lot safer. Sorry about that.
 
 Annotation support - functions to create, cache and send annotations to annotation streams
 
+Alerts support - Functions to create and fetch alerts
+
 explicit Statsd support - functions to create and use statsd data-types (will
 requre an external statsd process)
