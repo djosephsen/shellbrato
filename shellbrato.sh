@@ -261,5 +261,23 @@ debug "listAlerts: enter"
 debug "listAlerts: exit"
 }
 
+function getAlertByID {
+# function to fetch an alert from the api using it's ID number
+# usage: getAlert IDNUM
+debug "getAlert: enter"
+
+	#Set-able options
+	[ "${1}" ] || error "getAlert: arg1 should be alert ID"
+	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
+
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1})
+
+	echo ${OUT}|${GET_FILTER}
+
+
+debug "getAlert: exit"
+}
 
 checkSanity
