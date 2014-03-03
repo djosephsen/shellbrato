@@ -253,8 +253,8 @@ debug "listAlerts: enter"
 	[ "${LIST_FILTER}" ] || GET_FILTER=$(which cat)
 
 	#lets kick this pig
-	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET}"
-	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET})
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${VER} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${VER} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET})
 
 	echo ${OUT}|${GET_FILTER}
 
