@@ -137,18 +137,7 @@ avoiding things like in-memory data structures for the send queue, and other
 elegant nice-to-haves. So if you're looking at the source and are wondering wtf
 I was thinking, compatibility probably has something to do with it. 
 
-You should also be aware that, for now, internally, when you call an immediate
-send function like "sendGauge" your metric is added to the queue file, and then
-the queue file is immediately flushed with sendMetrics. 
-
-This means that any other metrics that you've previously queued, will be sent
-along with any invocation of "sendGauge", or "sendCounter". This was a trade
-off decision I made to maintain Darwin compatibility. Darwin doesn't seem to
-have a 'tempfile' binary by default, so I need to research and decide on the
-cleanest way to generate random temp files on Darwin (probably $RANDOM). In the
-near future, I'll separate the queues.
-
-Finally, I used double-pipe delimiters because many metric names are themselves
+I used double-pipe delimiters because many metric names are themselves
 deliminted with all sorts of interesting and creative characters. Very few
 people use multiple-character delimiters though (and they're all masochists so
 they wouldn't use this library anyway), so although double pipes introduce an
