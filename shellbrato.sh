@@ -84,12 +84,19 @@ debug "checkSanity: enter"
 debug "checkSanity: exit"
 }
 
-function DoPOST {
+function doPOST {
 # generic HTTP POST function
 #$1 is the path 
 #$3 is post data
-debug "DoPOST: enter"
-debug "DoPOST: exit"
+debug "doPOST: enter"
+debug "doPOST: exit"
+}
+
+function doGET {
+# generic HTTP GET function
+#$1 is the path 
+debug "doGET: enter"
+debug "doGET: exit"
 }
 
 function sendMetrics {
