@@ -12,7 +12,6 @@ METRICS_API_URL="${METRICS_URL}/v1/metrics"
 ALERTING_API_URL="${METRICS_URL}/v1/alerts"
 C_OPTS="--silent -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
 
-
 ##### functions #########
 function error {
 # Print an error and exit
@@ -94,15 +93,15 @@ debug "DoHTTP"
 }
 
 function sendMetrics {
-# take everything out of the queue file and send it
+# take everything out of the queue file (named by $1) and send it
 debug "SendMetrics: enter"
 
-
+	MYQ="${1}"
 	[ "${MTIME}" ] || MTIME="measure_time=$(date +%s)"
 	[ "${DEFAULT_SOURCE}" ] || DEFAULT_SOURCE="$(hostname)"
 
 	POST_PREFIX="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
-	POST_SUFFIX=$(cat ${QFILE} | tr -d '\n')
+	POST_SUFFIX=$(cat ${MYQ} | tr -d '\n')
 	POST_DATA="${POST_PREFIX}${POST_SUFFIX}"
 
 	#lets kick this pig
@@ -116,8 +115,8 @@ debug "SendMetrics: enter"
 		debug "SendMetrics:: Success!"
 	fi
 
- #reset the queue
- rm -Rf ${QFILE}
+ #dont leak tempfiles
+ rm -Rf ${MYQ}
  CinQ=0
  GinQ=0
 
@@ -132,6 +131,7 @@ debug "enQueue: enter"
 		#read VTIME MNAME MVALUE SOURCE <<< $(awk -F '[|][|]' '{print $1" "$2" "$3" "$4}' <<< ${2})
 	#cleaner and less awk, but not sure if '<<<' is compatible with non-bash shells
 
+	QFILE="/tmp/$$.tmp" 
 	if [ "${1}" == 'counters' ] 
 	then
 		N=${CinQ}
@@ -154,8 +154,9 @@ debug "enQueue: enter"
 	
 	unset VTIME MNAME MVALUE SOURCE N
 
-debug "enQueue: exit"
+	echo "${QFILE}" #return the name of the queue
 
+debug "enQueue: exit"
 }
 
 
@@ -164,8 +165,8 @@ function sendCounter {
 debug "sendCounter: enter"
 
 	METRIC=$(echo ${1} | tr ' ' '_')
-	enQueue "counters" "${METRIC}"
-	sendMetrics
+	Q=enQueue "counters" "${METRIC}"
+	sendMetrics ${Q}
 
 debug "sendCounter: exit"
 }
@@ -175,8 +176,8 @@ function sendGauge {
 debug "sendGauge: enter"
 
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	enQueue "gauges" "${METRIC}"
-	sendMetrics
+	Q=enQueue "gauges" "${METRIC}"
+	sendMetrics ${Q}
 
 debug "sendGauge: exit"
 }
@@ -185,7 +186,8 @@ function queueCounter {
 # append a counter measurement to the queue to send later
 debug "queueCounter: enter"
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	enQueue "counters" "${METRIC}"
+	Q=enQueue "counters" "${METRIC}"
+	echo "${Q}"
 debug "queueCounter: exit"
 }
 
@@ -193,10 +195,10 @@ function queueGauge {
 # append a gauge measurement to the queue to send later
 debug "queueGauge: enter"
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	enQueue "gauges" "${METRIC}"
+	Q=enQueue "gauges" "${METRIC}"
+	echo "${Q}"
 debug "queueGauge: exit"
 }
-
 
 function getMetric {
 # function to get metric data from the API
