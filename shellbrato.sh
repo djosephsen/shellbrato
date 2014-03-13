@@ -85,6 +85,14 @@ debug "checkSanity: enter"
 debug "checkSanity: exit"
 }
 
+function DoHTTP {
+# generic HTTP connection function
+#$1 is the path 
+#$2 is the method
+#$3 is post data
+debug "DoHTTP"
+}
+
 function sendMetrics {
 # take everything out of the queue file and send it
 debug "SendMetrics: enter"
