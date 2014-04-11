@@ -153,7 +153,6 @@ debug "enQueue: enter"
 	MVALUE=$(echo ${2} | awk -F '[|][|]' '{print $3}')
 	SOURCE=$(echo ${2} | awk -F '[|][|]' '{print $4}')
 
-
 	echo "&${1}[${N}][name]=${MNAME}" >> ${QFILE}
 	echo "&${1}[${N}][value]=${MVALUE}" >> ${QFILE}
 	echo "&${1}[${N}][measure_time]=${VTIME}" >> ${QFILE}
