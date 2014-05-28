@@ -10,7 +10,7 @@ GinQ=0
 METRICS_URL="https://metrics-api.librato.com"
 METRICS_API_URL="${METRICS_URL}/v1/metrics"
 ALERTING_API_URL="${METRICS_URL}/v1/alerts"
-C_OPTS="--silent -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
+C_OPTS="--silent -m5 -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
 
 ##### functions #########
 function error {
@@ -104,11 +104,12 @@ function sendMetrics {
 debug "SendMetrics: enter"
 
 	MYQ="${1}"
+	[ "${MYQ}" ] || error "sendMetrics() requires a Queue name argument (one is returned when you call the queue functions)"
 	[ "${MTIME}" ] || MTIME="measure_time=$(date +%s)"
 	[ "${DEFAULT_SOURCE}" ] || DEFAULT_SOURCE="$(hostname)"
 
 	POST_PREFIX="-d measure_time=${MTIME}&source=${DEFAULT_SOURCE}"
-	POST_SUFFIX=$(cat ${MYQ} | tr -d '\n')
+	POST_SUFFIX=$(cat "${MYQ}" | tr -d '\n')
 	POST_DATA="${POST_PREFIX}${POST_SUFFIX}"
 
 	#lets kick this pig
@@ -171,7 +172,7 @@ function sendCounter {
 debug "sendCounter: enter"
 
 	METRIC=$(echo ${1} | tr ' ' '_')
-	Q=enQueue "counters" "${METRIC}"
+	Q=$(enQueue "counters" "${METRIC}")
 	sendMetrics ${Q}
 
 debug "sendCounter: exit"
@@ -182,7 +183,7 @@ function sendGauge {
 debug "sendGauge: enter"
 
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	Q=enQueue "gauges" "${METRIC}"
+	Q=$(enQueue "gauges" "${METRIC}")
 	sendMetrics ${Q}
 
 debug "sendGauge: exit"
@@ -192,7 +193,7 @@ function queueCounter {
 # append a counter measurement to the queue to send later
 debug "queueCounter: enter"
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	Q=enQueue "counters" "${METRIC}"
+	Q=$(enQueue "counters" "${METRIC}")
 	echo "${Q}"
 debug "queueCounter: exit"
 }
@@ -201,7 +202,7 @@ function queueGauge {
 # append a gauge measurement to the queue to send later
 debug "queueGauge: enter"
 	METRIC=$(echo ${1} | tr  ' ' '_')
-	Q=enQueue "gauges" "${METRIC}"
+	Q=$(enQueue "gauges" "${METRIC}")
 	echo "${Q}"
 debug "queueGauge: exit"
 }
