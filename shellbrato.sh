@@ -7,10 +7,12 @@ SBVER='0.1' #shellbrato version
 QFILE=/tmp/LBTemp_$(date +%s)
 CinQ=0
 GinQ=0
+API_RETURN_MAX=100
 METRICS_URL="https://metrics-api.librato.com"
 METRICS_API_URL="${METRICS_URL}/v1/metrics"
 ALERTING_API_URL="${METRICS_URL}/v1/alerts"
-C_OPTS="--silent -m5 -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
+ANNOTATIONS_API_URL="${METRICS_URL}/v1/annotations"
+C_OPTS="--silent --connect-timeout 5 -m90 -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
 
 ##### functions #########
 function error {
@@ -29,10 +31,22 @@ function debug {
 	[ "${DEBUG}" ] && echo "$@" >&2
 }
 
+function print {
+	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
+
+   if [ -z "${PAGINATE}" ] # don't use GET_FILTER inside pagination loops
+	then
+		echo "$@" | ${GET_FILTER}
+	else
+		echo "$@"
+	fi
+}
+
 function checkSanity {
 # Make sure we have what we need
 debug "checkSanity: enter"
 
+	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
 	[ "${LBUSER}" ] || error 'Please export LBUSER=<your librato username>'
 	[ "${LBTOKEN}" ] || error 'Please export LBTOKEN=<your librato token>'
 	C="$(which curl 2>/dev/null)" || 'Please install Curl'
@@ -216,7 +230,6 @@ debug "getMetric: enter"
 	[ "${GET_RESOLUTION}" ] || GET_RESOLUTION='1'
 	[ "${1}" ] || error "getMetric: arg1 should be metric name"
 	[ "${2}" ] || error "getMetric: arg2 should be start time in epoc secs"
-	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
 
 	#start building the query
 	QUERY="-d resolution=${GET_RESOLUTION} -d start_time=${2}"
@@ -234,8 +247,7 @@ debug "getMetric: enter"
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1})
 
-	echo ${OUT}|${GET_FILTER}
-
+	print ${OUT}
 
 debug "getMetric: exit"
 }
@@ -248,13 +260,12 @@ debug "listMetrics: enter"
 	if [ "${1}" ]; then LMOFFSET=${1}; else LMOFFSET=0; fi
 
 	#Set-able options
-	[ "${LIST_FILTER}" ] || GET_FILTER=$(which cat)
 
 	#lets kick this pig
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET})
 
-	echo ${OUT}|${GET_FILTER}
+	print ${OUT}
 
 debug "listMetrics: exit"
 }
@@ -266,14 +277,12 @@ debug "listAlerts: enter"
 
 	if [ "${1}" ]; then LAOFFSET=${1}; else LAOFFSET=0; fi
 
-	#Set-able options
-	[ "${LIST_FILTER}" ] || GET_FILTER=$(which cat)
 
 	#lets kick this pig
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${VER} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${VER} -X GET ${ALERTING_API_URL}?offset=${LAOFFSET})
 
-	echo ${OUT}|${GET_FILTER}
+	print out
 
 debug "listAlerts: exit"
 }
@@ -285,16 +294,141 @@ debug "getAlert: enter"
 
 	#Set-able options
 	[ "${1}" ] || error "getAlert: arg1 should be alert ID"
-	[ "${GET_FILTER}" ] || GET_FILTER=$(which cat)
 
 	#lets kick this pig
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1})
 
-	echo ${OUT}|${GET_FILTER}
+	print ${OUT}
 
 
 debug "getAlert: exit"
+}
+
+function listAnnotations {
+# function to list all annotation streams
+# usage: listAnnotations
+debug "listAnnotations: enter"
+
+	if [ "${1}" ]; then LAOFFSET=${1}; else LAOFFSET=0; fi
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ANNOTATIONS_API_URL}?offset=${LAOFFSET}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ANNOTATIONS_API_URL}?offset=${LAOFFSET})
+
+	print ${OUT}
+
+debug "listAnnotations: exit"
+}
+
+function getAnnotation {
+# function to fetch an annotation from the api using it's ID number
+# usage: getAnnotation IDNUM
+debug "getAnnotation: enter"
+}
+
+function sendAnnotation {
+debug "sendAnnotation: enter"
+}
+
+function paginate {
+# Wrapper function to return paginated results for a given query
+# usage: paginate <other-shellbrato-function> [options]
+debug 'paginate enter'
+	PQUERY="${@}" # the query as we recieved it (pagination query)
+	debug "pquery: ${PQUERY}"
+
+	#getMetric uses next_time-style pagination
+	if echo ${PQUERY}| grep -q '^getMetric'
+	then
+		# this generally works for all of the 'get' commands, where the syntax is
+		# getThing nameOfThing offset
+		PTYPE='next_time'
+		PQ='getMetric'
+		QID=$(echo ${PQUERY} | cut -d\  -f2)
+		PAGINATE=$(echo ${PQUERY} | sed -e "s/^getMetric ${QID}//")
+	else
+		# this generally works for all of the 'list' commands, where the syntax is
+		# listThings offset
+		PTYPE='length'
+		PQ=$(echo ${PQUERY} | cut -d\  -f1)
+		PAGINATE=$(echo ${PQUERY} | sed -e "s/^${PQ}//")
+	fi
+
+	# run the initial query
+	debug "running:: ${PQ} ${QID} ${PAGINATE}"
+	R="$(${PQ} ${QID} ${PAGINATE})"
+	RE=$(echo ${R}| ${JQ} .)
+	PAGINATE=$(echo ${R} | ${JQ} ".query.${PTYPE}")
+	OFFSET=${PAGINATE}
+
+	#see if follow-up queries are necessary
+	while checkPaginate "${PTYPE}" "${PAGINATE}" 
+	do
+		debug "running:: ${PQ} ${QID} ${OFFSET}"
+		R="$(${PQ} ${QID} ${OFFSET})"
+	   RE="${RE}$(echo ${R}| ${JQ} .)" #store the combined query results 
+	   PAGINATE=$(echo ${R} | ${JQ} ".query.${PTYPE}")
+		if [ "${PAGINATE}" != 'null' ]
+		then
+			OFFSET=$(computeOffset ${PTYPE} ${PAGINATE} ${OFFSET})
+		else
+			OFFSET='null'
+		fi
+	done
+
+	unset PAGINATE
+	print ${RE}
+	unset PQ PTYPE QID R RE OFFSET
+}
+
+function checkPaginate {
+#return true if the value of $1 indicates we should keep paginating
+debug 'checkPaginate enter'
+	cpTYPE=${1}
+	[ "${cpTYPE}" ] || error "checkPaginate usage: checkPaginate <value> <type>"
+	cpVAL=${2}
+	[ "${cpVAL}" ] || return 1 #assume no pagination hint returned from api
+		
+
+	if [ "${cpTYPE}" == "length" ]
+	then
+		if [ "${cpVAL}" -eq ${API_RETURN_MAX} ]
+		then
+			return 0
+		fi
+	elif [ "${cpTYPE}" == "next_time" ]
+	then
+		if [ "${cpVAL}" != 'null' ]
+		then
+			return 0
+		fi
+	else
+		error "checkPaginate: unknown type: ${cpTYPE}"
+	fi
+
+	debug 'checkPaginate exit'
+	return 1
+}
+
+function computeOffset {
+# computes the proper value of the pagination variable depending on
+# the type of pagination desired
+
+	spTYPE=${1}
+	spNEXT=${2}
+	spCURRENT=${3}
+
+	if [ "${spTYPE}" == "length" ]
+	then
+		echo $((${spNEXT}+${spCURRENT}))
+		return 0
+	elif [ "${spTYPE}" == "next_time" ]
+	then
+		echo ${spNEXT}
+		return 0
+	else
+		error "setPaginate: unknown type: ${cpTYPE}"
+	fi
 }
 
 checkSanity
