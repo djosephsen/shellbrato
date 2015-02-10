@@ -103,31 +103,45 @@ it like so:
 
 	echo ${myList} | jq .
 
-## A word about pagination
-Any query you make against the API that returns more than 100 results is going
-to be truncated, and will require follow up queries on your part.  You can read
-about how the API paginates your results
-[here](http://dev.librato.com/v1/pagination).  Shellbrato doesn't handle
-[pagination](http://dev.librato.com/v1/pagination) for you. 
+## GET_FILTER
 
-Generally, there are two types of pagination hints returned by the API, the
-first is when you've made a time-based query, for example using the getMetric
-function to return all of the measurements between time x and time y.  These
-results will include a "next_time" pagination hint, that will give you the epoc
-start time of the next page of results. I've provided a [sample query
-script](https://github.com/djosephsen/shellbrato/blob/master/next-time_pagination_example.sh)
-showing how to loop using the "next_time" hint. 
+If you're working in the shell, you can export GET_FILTER to something handy,
+and shellbrato will run it's output through your filter. Eg:
 
-The other type of pagination hint is returned by non-time-based queries, for
-example, using the listMetrics function to return a list of all metrics. This
-type of query returns a combination of length and offset hints. I've also
-provided an [example
-script](https://github.com/djosephsen/shellbrato/blob/master/length_pagination_example.sh)
-that shows how to use these hints to paginate your results. 
+```
 
-I might add some convenience functions later to handle pagination, and possibly
-provide formatted output so you don't have to learn jq (but jq is basically
-awesome so you totally should). 
+export GET_FILTER="$(which jq) ."
+paginate getMetric AWS.EC2.CPUUtilization $(date -v-5H +%s)
+
+```
+
+And now you'll have nicely formatted output instead of massive ugly blobs. 
+
+
+## Pagination now a thing
+Read about how the API paginates your results
+[here](http://dev.librato.com/v1/pagination).  Shellbrato handles pagination
+with a function called: ``` paginate ```
+
+If, for example you had a query that looked like this: 
+
+``` getMetric AWS.EC2.CPUUtilization $(date -v-5H +%s) ```
+
+And you wanted to paginate the results, you could wrap your query in the
+paginate function like so: 
+
+``` paginate getMetric AWS.EC2.CPUUtilization $(date -v-5H +%s) ```
+
+The paginated results will potentially contain metadata from several queries to
+the api. If for example we needed to make three queries to get all of your data
+down from that getMetric call, then the blob returned by *paginate* will have
+two query{} objects in it. To get rid of the extranious metadata and just get
+your measurements, [jq] is your friend.
+
+``` getMetric AWS.EC2.CPUUtilization $(date -v-5H +%s) | jq .measurements ```
+
+Pagination support is new and possibly a little fragile. Let me know if you
+have problems with it.
 
 ## Design Considerations and Gotchas
 I've attempted to keep this library agnostic to the type of shell you're using
