@@ -1,4 +1,4 @@
-#r!/bin/sh
+#!/bin/sh
 # A proper shell library for Librato 
 #blame dave Mon Dec 23 12:33:15 CST 2013
 
@@ -234,7 +234,8 @@ debug "getMetric: enter"
 	#start building the query
 	QUERY="-d resolution=${GET_RESOLUTION} -d start_time=${2}"
 	[ "${GET_SUMMARIZE}" ] && QUERY="${QUERY} -d summarize_sources=true"
-	[ "${GET_SOURCE}" ] && QUERY="${QUERY} -d ${GET_SOURCE}"
+	[ "${GET_SOURCE}" ] && QUERY="${QUERY} -d source=${GET_SOURCE}"
+	[ "${GET_SOURCES}" ] && QUERY="${QUERY} -d sources[]=${GET_SOURCES}"
 
 	if [ "${3}" ]
 	then
@@ -247,7 +248,7 @@ debug "getMetric: enter"
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${METRICS_API_URL}/${1})
 
-	print ${OUT}
+	print "${OUT}"
 
 debug "getMetric: exit"
 }
@@ -265,7 +266,7 @@ debug "listMetrics: enter"
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${METRICS_API_URL}?offset=${LMOFFSET})
 
-	print ${OUT}
+	print "${OUT}"
 
 debug "listMetrics: exit"
 }
@@ -299,13 +300,12 @@ debug "getAlert: enter"
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ALERTING_API_URL}/${1})
 
-	print ${OUT}
-
+	print "${OUT}"
 
 debug "getAlert: exit"
 }
 
-function listAnnotations {
+function listAnnotationStreams {
 # function to list all annotation streams
 # usage: listAnnotations
 debug "listAnnotations: enter"
@@ -315,35 +315,77 @@ debug "listAnnotations: enter"
 	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ANNOTATIONS_API_URL}?offset=${LAOFFSET}"
 	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -X GET ${ANNOTATIONS_API_URL}?offset=${LAOFFSET})
 
-	print ${OUT}
+	print "${OUT}"
 
 debug "listAnnotations: exit"
 }
 
 function getAnnotation {
-# function to fetch an annotation from the api using it's ID number
-# usage: getAnnotation IDNUM
+# function to fetch all the events from a named annotation stream from the api
+# usage: getAnnotation <name> <startepoc> <endepoc>
 debug "getAnnotation: enter"
+
+	gaNAME=${1}
+	[ "${gaNAME}" ] || error "getAnnotation usage: getAnnotation <name> [start-epoc]"
+	gaOFFSET=${2}
+	[ "${gaOFFSET}" ] || gaOFFSET=0
+
+   #start building the query
+   QUERY="-d start_time=${gaOFFSET}"
+   [ "${GET_SOURCES}" ] && QUERY="${QUERY} -d sources[]=${GET_SOURCES}"
+
+   if [ "${3}" ]
+   then
+      QUERY="${QUERY} -d end_time=${3}"
+   else
+      QUERY="${QUERY} -d end_time=$(date +%s)"
+   fi
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${ANNOTATIONS_API_URL}/${gaNAME}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} ${QUERY} -X GET ${ANNOTATIONS_API_URL}/${gaNAME})
+
+	print "${OUT}"
 }
 
 function sendAnnotation {
 debug "sendAnnotation: enter"
+# sendAnnotation '<stream>|<title>||[start]||[end]'
+# you may also export $SOURCE and $DESCRIPTION
+
+	[ "${SOURCE}" ] || SOURCE="$(hostname)"
+	saSTREAM=$(echo ${1} | awk -F '[|][|]' '{print $1}')
+	saTITLE=$(echo ${1} | awk -F '[|][|]' '{print $2}')
+	saSTART=$(echo ${1} | awk -F '[|][|]' '{print $3}')
+	[ "${saSTART}" ] || saSTART="$(date +%s)"
+	saEND=$(echo ${1} | awk -F '[|][|]' '{print $4}')
+
+	POST_DATA="title=${saTITLE}&source=${SOURCE}"
+	[ "${DESCRIPTION}" ] && POST_DATA="${POST_DATA}&description=${DESCRIPTION}"
+	POST_DATA="${POST_DATA}&start_time=${saSTART}"
+	[ "${saEND}" ] && POST_DATA="${POST_DATA}&end_time=${saEND}"
+
+	#lets kick this pig
+	debug "${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -d ${POST_DATA} -X POST ${ANNOTATIONS_API_URL}/${saSTREAM}"
+	OUT=$(${C} ${C_OPTS} -u ${LBUSER}:${LBTOKEN} -d "${POST_DATA}" -X POST ${ANNOTATIONS_API_URL}/${saSTREAM})
+
+	print "${OUT}"
+	unset saSTREAM saTITLE saSTART saEND POST_DATA DESCRIPTION OUT
 }
 
 function paginate {
 # Wrapper function to return paginated results for a given query
 # usage: paginate <other-shellbrato-function> [options]
+#######  this is experimental and probably fragile #########
 debug 'paginate enter'
 	PQUERY="${@}" # the query as we recieved it (pagination query)
 	debug "pquery: ${PQUERY}"
 
-	#getMetric uses next_time-style pagination
-	if echo ${PQUERY}| grep -q '^getMetric'
+	#get commands use 'next_time-style' pagination
+	if echo ${PQUERY}| grep -q '^get'
 	then
 		# this generally works for all of the 'get' commands, where the syntax is
 		# getThing nameOfThing offset
 		PTYPE='next_time'
-		PQ='getMetric'
+		PQ=$(echo ${PQUERY} | cut -d\  -f1)
 		QID=$(echo ${PQUERY} | cut -d\  -f2)
 		PAGINATE=$(echo ${PQUERY} | sed -e "s/^getMetric ${QID}//")
 	else
