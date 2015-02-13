@@ -12,7 +12,7 @@ METRICS_URL="https://metrics-api.librato.com"
 METRICS_API_URL="${METRICS_URL}/v1/metrics"
 ALERTING_API_URL="${METRICS_URL}/v1/alerts"
 ANNOTATIONS_API_URL="${METRICS_URL}/v1/annotations"
-C_OPTS="--silent --connect-timeout 5 -m90 -A shellbrato/${SBVER}::$(/bin/sh --version | head -n1 | tr ' ' '_')"
+C_OPTS="--silent --connect-timeout 5 -m90 -A shellbrato/${SBVER}::${SHELL}"
 
 ##### functions #########
 function error {
