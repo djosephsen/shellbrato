@@ -348,7 +348,7 @@ debug "getAnnotation: enter"
 
 function sendAnnotation {
 debug "sendAnnotation: enter"
-# sendAnnotation '<stream>|<title>||[start]||[end]'
+# sendAnnotation '<stream>||<title>||[start]||[end]'
 # you may also export $SOURCE and $DESCRIPTION
 
 	[ "${SOURCE}" ] || SOURCE="$(hostname)"

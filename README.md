@@ -117,6 +117,21 @@ paginate getMetric AWS.EC2.CPUUtilization $(date -v-5H +%s)
 
 And now you'll have nicely formatted output instead of massive ugly blobs. 
 
+## Send/List Annotations
+Get a list of all Annotation streams
+```
+listAnnotations
+```
+
+Add a "backup job" annotation to the "CronJobs" annotation stream:
+```
+sendAnnotation 'CronJobs||Backup Job||1442844778||1442844877'
+```
+
+List the annotations in the "Alert" stream
+```
+getAnnotation 'Alerts 1442844778 1442844877'
+```
 
 ## Pagination now a thing
 Read about how the API paginates your results
@@ -159,9 +174,4 @@ awk dependency, they make things generally a lot safer. Sorry about that.
 
 ## TODO
 
-Annotation support - functions to create, cache and send annotations to annotation streams
-
 Alerts support - Functions to create and fetch alerts
-
-explicit Statsd support - functions to create and use statsd data-types (will
-requre an external statsd process)
